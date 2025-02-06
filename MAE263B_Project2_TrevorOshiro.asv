@@ -22,15 +22,23 @@ fprintf('-----------------------------------------------------------------')
 fprintf('\n')
 
 syms larm1 larm2
-para1 = [0, 0, 0];      % d, a, alpha
-para2 = [0, 0, 0];      % d, a, alpha
-para3 = [0, 0, 0];      % a, alpha, theta
+para1 = [0.416, 0, 0];      % d, a, alpha
+para2 = [0, 0.325, 0];     % d, a, alpha
+para3 = [0, 0.225, 0];      % d, a, alpha
+para4 = [0, 0, 0];          % a, alpha, theta
 
 Arm1 = Link('revolute','d',para1(1),'a',para1(2),'alpha',para1(3),'modified');
 Arm2 = Link('revolute','d',para2(1),'a',para2(2),'alpha',para2(3),'modified');
-Arm3 = Link('prismatic','a',para3(1),'alpha',para3(2),'theta',para3(3),'modified');
+Arm3 = Link('revolute','d',para3(1),'a',para3(2),'alpha',para3(3),'modified');
+Arm4 = Link('prismatic','a',para4(1),'alpha',para4(2),'theta',para4(3),'modified');
+Arm_tool = transl(0,0,-0.17);
 
-SCARA_modDH = SerialLink([Arm1 Arm2 Arm3], 'name', '(Problem 1.1) DH parameters of arm')
+SCARA_modDH = SerialLink([Arm1 Arm2 Arm3 Arm4], 'tool', Arm_tool,...
+    'name', '(Problem 1.1) DH parameters of arm')
+
+fprintf(['Orientation of robot in schematic obtained with editing rest...' ...
+    'values for revolute joint'])
+fprintf('\n')
 
 fprintf('-----------------------------------------------------------------')
 fprintf('\n')
@@ -39,8 +47,8 @@ fprintf('\n')
 fprintf('-----------------------------------------------------------------')
 fprintf('\n')
 
-syms th1 th2 di3
-SCARA_FK = SCARA_modDH.fkine([th1, th2, di3])
+syms th1 th2 th3 di3
+SCARA_FK = simplify(SCARA_modDH.fkine([th1, th2, th3, di3]))
 
 fprintf('-----------------------------------------------------------------')
 fprintf('\n')
@@ -48,6 +56,88 @@ fprintf('Question 1.2: Define the Inverse kinematics of the arm')
 fprintf('\n')
 fprintf('-----------------------------------------------------------------')
 fprintf('\n')
+
+fprintf('Derivations of the inverse kinematics can be seen with the report')
+fprintf('\n')
+fprintf('Simple calculations with IK are shown with the Ikine function execution below')
+fprintf('\n')
+fprintf('Fully extended along y axis:')
+fprintf('\n')
+[th1, th2, th3, di3] = Ikine(0,0.255+0.16,0,90,1)
+fprintf('\n')
+fprintf('Fully extended along x axis:')
+fprintf('\n')
+[th1, th2, th3, di3] = Ikine(0.255+0.16,0,0,90,1)
+fprintf('\n')
+
+fprintf('\n')
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+fprintf('Question 1.3 Define initial positions of the feeder and target locations')
+fprintf('\n')
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+
+fprintf('(1) Feeder Location')
+fprintf('\n')
+T_feeder = [rotz(0), [0.155; sqrt(0.2^2 - 0.155^2); 0];
+    0,0,0,1]
+fprintf('\n')
+fprintf('(2) Top Left Corner Location')
+fprintf('\n')
+T_2 = [rotz(90), [0.2+(0.01/2); 0.09; 0];
+    0,0,0,1]
+fprintf('\n')
+fprintf('(3) Top Right Corner Location')
+fprintf('\n')
+T_3 = [rotz(0), [0.2+0.01+(0.01/2); 0.09; 0];
+    0,0,0,1]
+fprintf('\n')
+fprintf('(4) Bottom Right Corner Location')
+fprintf('\n')
+T_4 = [rotz(-90), [0.2+0.01+(0.01/2); 0; 0];
+    0,0,0,1]
+fprintf('\n')
+fprintf('(4) Bottom Left Corner Location')
+fprintf('\n')
+T_5 = [rotz(180), [0.2+(0.01/2); 0; 0];
+    0,0,0,1]
+
+fprintf('\n')
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+fprintf('Question 1.4 Define Define via points to avoid collisions')
+fprintf('\n')
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+
+fprintf('\n')
+fprintf('Center of board')
+fprintf('\n')
+T_center = [rotz(0), [0.2+(0.1/2); 0.045; 0];
+    0,0,0,1]
+fprintf('\n')
+fprintf('Middle of two top chips')
+fprintf('\n')
+T_tmid = [rotz(0), [0.2+(0.1/2); 0.09; 0];
+    0,0,0,1]
+fprintf('\n')
+fprintf('Middle of two right chips')
+fprintf('\n')
+T_rmid = [rotz(0), [0.2+(0.1-(0.01/2)); 0.045; 0];
+    0,0,0,1]
+fprintf('\n')
+fprintf('Middle of two left chips')
+fprintf('\n')
+T_lmid = [rotz(0), [0.2+(0.01/2); 0.045; 0];
+    0,0,0,1]
+fprintf('\n')
+fprintf('Middle of two bottom chips')
+fprintf('\n')
+T_rmid = [rotz(0), [0.2+(0.1/2); 0; 0];
+    0,0,0,1]
+
+
 
 %% 
 
@@ -57,9 +147,50 @@ tpts = [0, 2, 3, 6];
 acc = 50;
 [Lin_Coeff, Para_Coeff, time_seg] = Joint_blend(points, tpts, acc)
 [fig_plot] = Joint_blendplot(Lin_Coeff, Para_Coeff, time_seg, tpts)
+%%
+[th1, th2, th3, di3] = Ikine(0,0.255+0.16,0,90,1)
 
 
 %% Helper Functions
+
+% Function for generating inverse kinematics
+% Angles defined with degrees
+% Orientation of claw defined with orient being 0 when facing forward
+function [th1, th2, th3, di3] = Ikine(x, y, z, orient, elbow)
+    % Solving for theta 2 (elbow)
+    c2 = (x^2 + y^2 - 0.255^2 - 0.325^2)/(2*0.255*0.325);
+    % Account for perferred orientation of elbow
+    if elbow == 1
+        s2 = sqrt(1 - c2^2);
+    elseif elbow == -1
+        s2 = -sqrt(1 - c2^2);
+    end
+    if isreal(s2)
+        th2 = rad2deg(atan2(s2,c2));
+        if abs(th2) > 145
+            th2 = 0;
+            fprintf('Out of elbow range')
+        end
+    else
+        th2 = 0;
+    end
+
+    % Solving for z extension of prismatic joint
+    di3 = 0.2460 - z;
+
+    % Solving for theta 1 (shoulder)
+    deag = (y*(0.255*cos(th2) + 0.325)) - (x*0.255*sin(th2));
+    cgdf = (x*(0.255*cos(th2) + 0.325)) - (y*(-0.255*sin(th2)));
+    th1 = rad2deg(atan2(deag, cgdf));
+    if abs(th1) > 170
+        th1 = 0;
+        fprintf('Out of shoulder range')
+    end
+
+    % Solving for gripper orientation
+    th3 = orient + th1 - th2;
+end
+
 
 % Function for generating plots of trajectory: linear + parabolic blend
 function [fig_plot] = Joint_blendplot(Lin_Coeff, Para_Coeff, time_seg, tpts)
@@ -81,13 +212,12 @@ function [fig_plot] = Joint_blendplot(Lin_Coeff, Para_Coeff, time_seg, tpts)
     t = linspace(0, time_seg(2,1));
     plot(t, polyval(Para_Coeff(1,:),t), 'LineWidth', 3, 'Color', ...
             'blue', 'DisplayName', 'Parabola section ' + string(1))
-    %tp_off = 0.5*time_seg(2,1);
-    %tp_off = 0;
-    tp_off = [0.5*time_seg(2,1), tpts(2:end-1)];
+    % Plotting the middle parabolas
     for ii = 2:size(time_seg, 2)-1
         %t = linspace(tp_off, (tp_off+time_seg(2,ii)));
+        %t_para = -0.5*time_seg(2,ii-1) + time_seg(1,ii-1) + linspace(0, (time_seg(2,ii)));
+        t_para = linspace(0, (time_seg(2,ii)));
         %t_para = 0.5*time_seg(2,ii-1) + time_seg(1,ii-1) + linspace(0, (time_seg(2,ii)));
-        t_para = 0.5*time_seg(2,ii-1) + linspace(0, (time_seg(2,ii)));
         para_val = polyval(Para_Coeff(ii,:),t_para);
         t_all = linspace(tpts(ii) - 0.5*time_seg(2,ii), ...
             tpts(ii) + 0.5*time_seg(2,ii));
@@ -214,25 +344,16 @@ function [Lin_Coeff, Para_Coeff, time_seg] = Joint_blend(points, tpts, acc)
     f_e = (vel_seg(end))/(2*(tpts(end) - tpts(end-1)));
     t_einb = points(end-1) + ...
         (vel_seg(end)*((tpts(end) - tpts(end-1)) - time_seg(2,end)));
-    Para_Coeff(end,1) = -0.5*(vel_seg(end)/(tpts(end) - tpts(end-1)));
+    %Para_Coeff(end,1) = -0.5*(vel_seg(end)/(tpts(end) - tpts(end-1)));
+    Para_Coeff(end,1) = -0.5*(vel_seg(end)/(time_seg(2,end)));
     Para_Coeff(end,2) = vel_seg(end);
     Para_Coeff(end,3) = t_einb;
-    % Para_Coeff(end,1) = -f_e;
-    % Para_Coeff(end,2) = vel_seg(end) + (f_e*2*(points(end-1) + z_e));
-    % Para_Coeff(end,3) = t_einb - (f_e*(points(end-1) + z_e)^2);
-    x_off = time_seg(2,1)/2;
     for jj = 2:(size(points, 2) - 1)        
-        % z_t = 0.5*time_seg(2,jj-1) + time_seg(1,jj-1);
-        z_t = 0.5*time_seg(2,jj-1) + time_seg(1,jj-1)
+        z_t = 0.5*time_seg(2,jj-1) + time_seg(1,jj-1);
         acc_dir = acc_seg(jj);
-        % Para_Coeff(jj,3) = points(jj-1) + (vel_seg(jj-1)*z_t) + 0.5*((x_off+z_t)^2)*acc_dir;
-        % Para_Coeff(jj,2) = -(x_off+z_t)*(acc_dir);
-        % Para_Coeff(jj,1) = 0.5*(acc_dir);
-        Para_Coeff(jj,3) = points(jj-1) + (vel_seg(jj-1)*z_t) + 0.5*((z_t)^2)*acc_dir;
-        Para_Coeff(jj,2) = -(z_t)*(acc_dir);
+        Para_Coeff(jj,3) = points(jj-1) + vel_seg(jj-1)*(z_t);
+        Para_Coeff(jj,2) = vel_seg(jj-1);
         Para_Coeff(jj,1) = 0.5*(acc_dir);
-        % x_off = x_off + z_t + 0.5*time_seg(2,jj-1);
-        x_off = tpts(jj);
     end
 
     vel_seg
