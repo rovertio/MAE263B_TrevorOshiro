@@ -30,8 +30,9 @@ para4 = [0, 0, 0];          % a, alpha, theta
 Arm1 = Link('revolute','d',para1(1),'a',para1(2),'alpha',para1(3),'modified');
 Arm2 = Link('revolute','d',para2(1),'a',para2(2),'alpha',para2(3),'modified');
 Arm3 = Link('revolute','d',para3(1),'a',para3(2),'alpha',para3(3),'modified');
-Arm4 = Link('prismatic','a',para4(1),'alpha',para4(2),'theta',para4(3),'modified');
-Arm_tool = transl(0,0,-0.17);
+Arm4 = Link('prismatic','a',para4(1),'alpha',para4(2),'theta',para4(3),...
+    'modified', 'qlim', [0,0.15]);
+Arm_tool = transl(0,0,0.17);
 
 SCARA_modDH = SerialLink([Arm1 Arm2 Arm3 Arm4], 'tool', Arm_tool,...
     'name', '(Problem 1.1) DH parameters of arm')
@@ -80,27 +81,27 @@ fprintf('\n')
 
 fprintf('(1) Feeder Location')
 fprintf('\n')
-T_feeder = [rotz(0), [0.155; sqrt(0.2^2 - 0.155^2); 0];
+T_feeder = [rotz(0), [0.325; 0.1286+sqrt(0.2^2 - 0.155^2); 0.227];
     0,0,0,1]
 fprintf('\n')
 fprintf('(2) Top Left Corner Location')
 fprintf('\n')
-T_2 = [rotz(90), [0.2+(0.01/2); 0.09; 0];
+T_2 = [rotz(90), [0.05+0.2+0.065+(0.01/2); 0.1286+0.09-0.03; 0.227];
     0,0,0,1]
 fprintf('\n')
 fprintf('(3) Top Right Corner Location')
 fprintf('\n')
-T_3 = [rotz(0), [0.2+0.01+(0.01/2); 0.09; 0];
+T_3 = [rotz(0), [0.05+0.2+0.065+0.01+(0.01/2); 0.1286+0.09-0.03; 0.227];
     0,0,0,1]
 fprintf('\n')
 fprintf('(4) Bottom Right Corner Location')
 fprintf('\n')
-T_4 = [rotz(-90), [0.2+0.01+(0.01/2); 0; 0];
+T_4 = [rotz(-90), [0.05+0.2+0.065+0.01+(0.01/2); 0.1286-0.03; 0.227];
     0,0,0,1]
 fprintf('\n')
 fprintf('(4) Bottom Left Corner Location')
 fprintf('\n')
-T_5 = [rotz(180), [0.2+(0.01/2); 0; 0];
+T_5 = [rotz(180), [0.05+0.2+0.065+(0.01/2); 0.1286-0.03; 0.227];
     0,0,0,1]
 
 fprintf('\n')
@@ -112,30 +113,25 @@ fprintf('-----------------------------------------------------------------')
 fprintf('\n')
 
 fprintf('\n')
-fprintf('Center of board')
+fprintf('(1a) Point between the feeder and top left corner')
 fprintf('\n')
-T_center = [rotz(0), [0.2+(0.1/2); 0.045; 0];
+T_ftla = [rotz(0), [0.015+0.05+0.2+0.065+(0.01/2); 0.0133+0.1286+0.09-0.03; 0.228];
     0,0,0,1]
 fprintf('\n')
-fprintf('Middle of two top chips')
+fprintf('(1b) Point between the feeder and top left corner')
 fprintf('\n')
-T_tmid = [rotz(0), [0.2+(0.1/2); 0.09; 0];
+T_ftlb = [rotz(90), [0.03+0.05+0.2+0.065+(0.01/2); 0.0267+0.1286+0.09-0.03; 0.227];
+    0,0,0,1]
+fprintf('(2a) Point between the feeder and top right corner')
+fprintf('\n')
+T_ftra = [rotz(0), [0.05+0.2+0.065+0.01+(0.01/2)-0.015; 0.0133+0.1286+0.09-0.03; 0.228];
     0,0,0,1]
 fprintf('\n')
-fprintf('Middle of two right chips')
+fprintf('(2b) Point between the feeder and top right corner')
 fprintf('\n')
-T_rmid = [rotz(0), [0.2+(0.1-(0.01/2)); 0.045; 0];
+T_ftrb = [rotz(0), [0.05+0.2+0.065+0.01+(0.01/2)-0.030; 0.0267+0.1286+0.09-0.03; 0.227];
     0,0,0,1]
 fprintf('\n')
-fprintf('Middle of two left chips')
-fprintf('\n')
-T_lmid = [rotz(0), [0.2+(0.01/2); 0.045; 0];
-    0,0,0,1]
-fprintf('\n')
-fprintf('Middle of two bottom chips')
-fprintf('\n')
-T_bmid = [rotz(0), [0.2+(0.1/2); 0; 0];
-    0,0,0,1]
 
 fprintf('\n')
 fprintf('-----------------------------------------------------------------')
@@ -145,8 +141,158 @@ fprintf('\n')
 fprintf('-----------------------------------------------------------------')
 fprintf('\n')
 
+hold on
+figure(1)
+SCARA_modDH.plot([0,pi/2,0,0]);
+title('Default configuration of SCARA system')
+xlim([-0.6,0.6])
+ylim([-0.6,0.6])
+zlim([0,0.5])
+hold off
 
 
+q0 = [0,pi/2,0,0];
+fprintf('\n')
+fprintf('Inverse kinematics')
+fprintf('\n')
+% Points to find
+elbow = 1;
+waypoints = [T_ftla(1:3,4)', pi/3, elbow; %(1)
+    T_ftlb(1:3,4)', pi/6, elbow; %(2)
+    T_ftra(1:3,4)', 0, elbow; %(3)
+    T_ftrb(1:3,4)', 0, elbow; %(4)
+    T_feeder(1:3,4)', 0, elbow; %(5)
+    T_2(1:3,4)', pi/2, elbow; %(6)
+    T_3(1:3,4)', 0, elbow; %(7)
+    T_4(1:3,4)', -pi/2, elbow; %(8)
+    T_5(1:3,4)', pi, elbow;]; %(9)
+
+wp_j = zeros(size(waypoints,1),4);
+% Obtaining joint angles for correspnding points
+for ii = 1:size(waypoints,1)
+    [wp_j(ii,1), wp_j(ii,2), wp_j(ii,3), wp_j(ii,4)] = ...
+        Ikine(waypoints(ii,1), waypoints(ii,2), ...
+        waypoints(ii,3), waypoints(ii,4), waypoints(ii,5));
+end
+
+% Max acceleration assumed to be 50 
+acc = 50;
+% Trajectory planning via parabolic linear blend
+% Trajectory 2 from feeder to top left corner
+points2 = [wp_j(5,:); wp_j(2,:); wp_j(1,:); wp_j(6,:)];
+tpts2 = [0, 1, 2, 3];
+clear figure(2)
+figure(2)
+hold on
+subplot(2,2,1)
+[Lin_Coeff2a, Para_Coeff2a, time_seg2a] = Joint_blend(points2(:,1)', tpts2, acc);
+[fig_plot2a] = Joint_blendplot(Lin_Coeff2a, Para_Coeff2a, time_seg2a, tpts2, 2);
+title('Trajectory for theta 1')
+
+subplot(2,2,2)
+[Lin_Coeff2b, Para_Coeff2b, time_seg2b] = Joint_blend(points2(:,2)', tpts2, acc);
+[fig_plot2b] = Joint_blendplot(Lin_Coeff2b, Para_Coeff2b, time_seg2b, tpts2, 2);
+title('Trajectory for theta 2')
+
+subplot(2,2,3)
+[Lin_Coeff2c, Para_Coeff2c, time_seg2c] = Joint_blend(points2(:,3)', tpts2, acc);
+[fig_plot2c] = Joint_blendplot(Lin_Coeff2c, Para_Coeff2c, time_seg2c, tpts2, 2);
+title('Trajectory for theta 3')
+
+% subplot(2,2,4)
+% [Lin_Coeff2d, Para_Coeff2d, time_seg2d] = Joint_blend(points2(:,4)', tpts2, acc);
+% [fig_plot2d] = Joint_blendplot(Lin_Coeff2d, Para_Coeff2d, time_seg2d, tpts2, 2);
+% title('Trajectory for d4')
+sgtitle('Trajectory (2) from the Feeder to the Top Left Corner')
+hold off
+
+% Trajectory planning via parabolic linear blend
+% Trajectory 4 from feeder to top right corner
+points4 = [wp_j(5,:); wp_j(4,:); wp_j(3,:); wp_j(7,:)]
+tpts4 = [0, 1, 2, 4];
+clear figure(3)
+figure(3)
+hold on
+subplot(2,2,1)
+[Lin_Coeff4a, Para_Coeff4a, time_seg4a] = Joint_blend(points4(:,1)', tpts4, acc);
+[fig_plot4a] = Joint_blendplot(Lin_Coeff4a, Para_Coeff4a, time_seg4a, tpts4, 3);
+title('Trajectory for theta 1')
+
+subplot(2,2,2)
+[Lin_Coeff4b, Para_Coeff4b, time_seg4b] = Joint_blend(points4(:,2)', tpts4, acc);
+[fig_plot4b] = Joint_blendplot(Lin_Coeff4b, Para_Coeff4b, time_seg4b, tpts4, 3);
+title('Trajectory for theta 2')
+
+subplot(2,2,3)
+[Lin_Coeff4c, Para_Coeff4c, time_seg4c] = Joint_blend(points4(:,3)', tpts4, acc);
+[fig_plot4c] = Joint_blendplot(Lin_Coeff4c, Para_Coeff4c, time_seg4c, tpts4, 3);
+title('Trajectory for theta 3')
+
+% subplot(2,2,4)
+% [Lin_Coeff4d, Para_Coeff4d, time_seg4d] = Joint_blend(points2(:,4)', tpts4, acc);
+% [fig_plot4d] = Joint_blendplot(Lin_Coeff4d, Para_Coeff4d, time_seg4d, tpts4, 3);
+% title('Trajectory for d4')
+sgtitle('Trajectory (4) from the Feeder to the Top Right Corner')
+hold off
+
+% Trajectory planning via parabolic linear blend
+% Trajectory 3 from top left corner to the feeder
+points3 = [wp_j(6,:); wp_j(1,:); wp_j(2,:); wp_j(5,:)];
+tpts3 = [0, 1, 2, 3];
+clear figure(4)
+figure(4)
+hold on
+subplot(2,2,1)
+[Lin_Coeff3a, Para_Coeff3a, time_seg3a] = Joint_blend(points3(:,1)', tpts3, acc);
+[fig_plot3a] = Joint_blendplot(Lin_Coeff3a, Para_Coeff3a, time_seg3a, tpts3, 4);
+title('Trajectory for theta 1')
+
+subplot(2,2,2)
+[Lin_Coeff3b, Para_Coeff3b, time_seg3b] = Joint_blend(points2(:,2)', tpts3, acc);
+[fig_plot3b] = Joint_blendplot(Lin_Coeff3b, Para_Coeff3b, time_seg3b, tpts3, 4);
+title('Trajectory for theta 2')
+
+subplot(2,2,3)
+[Lin_Coeff3c, Para_Coeff3c, time_seg3c] = Joint_blend(points3(:,3)', tpts3, acc);
+[fig_plot3c] = Joint_blendplot(Lin_Coeff3c, Para_Coeff3c, time_seg3c, tpts3, 4);
+title('Trajectory for theta 3')
+
+% subplot(2,2,4)
+% [Lin_Coeff2d, Para_Coeff2d, time_seg2d] = Joint_blend(points2(:,4)', tpts2, acc);
+% [fig_plot2d] = Joint_blendplot(Lin_Coeff2d, Para_Coeff2d, time_seg2d, tpts2, 2);
+% title('Trajectory for d4')
+sgtitle('Trajectory (3) from the Top Left Corner to the Feeder')
+hold off
+
+
+% Trajectory planning via parabolic linear blend
+% Trajectory 5 from feeder to top left corner
+points5 = [wp_j(7,:); wp_j(3,:); wp_j(4,:); wp_j(5,:)];
+tpts5 = [0, 1.5, 4, 5];
+clear figure(5)
+figure(5)
+hold on
+subplot(2,2,1)
+[Lin_Coeff5a, Para_Coeff5a, time_seg5a] = Joint_blend(points5(:,1)', tpts5, acc);
+[fig_plot5a] = Joint_blendplot(Lin_Coeff5a, Para_Coeff5a, time_seg5a, tpts5, 5);
+title('Trajectory for theta 1')
+
+subplot(2,2,2)
+[Lin_Coeff5b, Para_Coeff5b, time_seg5b] = Joint_blend(points5(:,2)', tpts5, acc);
+[fig_plot5b] = Joint_blendplot(Lin_Coeff5b, Para_Coeff5b, time_seg5b, tpts5, 5);
+title('Trajectory for theta 2')
+
+subplot(2,2,3)
+[Lin_Coeff5c, Para_Coeff5c, time_seg5c] = Joint_blend(points5(:,3)', tpts5, acc);
+[fig_plot5c] = Joint_blendplot(Lin_Coeff5c, Para_Coeff5c, time_seg5c, tpts5, 5);
+title('Trajectory for theta 3')
+
+% subplot(2,2,4)
+% [Lin_Coeff4d, Para_Coeff4d, time_seg4d] = Joint_blend(points2(:,4)', tpts4, acc);
+% [fig_plot4d] = Joint_blendplot(Lin_Coeff4d, Para_Coeff4d, time_seg4d, tpts4, 3);
+% title('Trajectory for d4')
+sgtitle('Trajectory (5) from Top Right Corner to the Feeder')
+hold off
 
 
 %% Section to test functions
@@ -159,6 +305,15 @@ acc = 50;
 [fig_plot] = Joint_blendplot(Lin_Coeff, Para_Coeff, time_seg, tpts)
 [th1, th2, th3, di3] = Ikine(0,0.255+0.16,0,90,1)
 
+%%
+
+pi = 3.14;
+SCARA_modDH.plot([0,0,0,0])
+%jointspace_animation(q, robot, N, view, filename)
+
+%%
+ [angles, es] = Ikine(waypoints(1,1), waypoints(1,2), ...
+        waypoints(1,3), waypoints(1,4), waypoints(1,5))
 
 %% Helper Functions
 
@@ -169,9 +324,9 @@ function [th1, th2, th3, di3] = Ikine(x, y, z, orient, elbow)
     % Solving for theta 2 (elbow)
     c2 = (x^2 + y^2 - 0.255^2 - 0.325^2)/(2*0.255*0.325);
     % Account for perferred orientation of elbow
-    if elbow == 1
+    if elbow > 0
         s2 = sqrt(1 - c2^2);
-    elseif elbow == -1
+    else
         s2 = -sqrt(1 - c2^2);
     end
     if isreal(s2)
@@ -202,15 +357,18 @@ end
 
 
 % Function for generating plots of trajectory: linear + parabolic blend
-function [fig_plot] = Joint_blendplot(Lin_Coeff, Para_Coeff, time_seg, tpts)
+function [fig_plot] = Joint_blendplot(Lin_Coeff, Para_Coeff, time_seg, tpts, n)
+    %N = 15;
     hold on
-    fig_plot = figure(1);
+    fig_plot = figure(n);
     % Plotting the reference times for blending sections
     c_time = time_seg(2,1);
     xline(c_time, 'LineStyle',':', 'LineWidth', 2, 'DisplayName', 't = ' + string(c_time))
+    %f_val = zeros(1,N*(size(Lin_Coeff,1) + size(Para_Coeff,1)));
     for tt = 1:(size(time_seg, 2)-1)
         lin_end = c_time + time_seg(1,tt);
         xline(lin_end, 'LineStyle',':', 'LineWidth', 2, 'DisplayName', 't = ' + string(lin_end))
+        %f_val(N*(tt-1):N*tt) = polyval(Para_Coeff(tt,:),linspace(c_time, lin_end, N));
         para_end = c_time + time_seg(1,tt) + time_seg(2,tt+1);
         xline(para_end, 'LineStyle',':', 'LineWidth', 2, 'DisplayName', 't = ' + string(para_end))
         c_time = c_time + time_seg(1,tt) + time_seg(2,tt+1);
@@ -251,7 +409,7 @@ function [fig_plot] = Joint_blendplot(Lin_Coeff, Para_Coeff, time_seg, tpts)
         tl_off = tl_off + time_seg(2,jj+1) + time_seg(1,jj);
     end
     legend()
-    legend show
+    %legend show
     hold off
 
 end
@@ -364,12 +522,40 @@ function [Lin_Coeff, Para_Coeff, time_seg] = Joint_blend(points, tpts, acc)
         Para_Coeff(jj,2) = vel_seg(jj-1);
         Para_Coeff(jj,1) = 0.5*(acc_dir);
     end
-
+    
+    time_seg
     vel_seg
     acc_seg
 
 end
 
-
+% Code taken from class for animation of the trajectories
+function jointspace_animation(q, robot, N, view, filename)
+    v = VideoWriter(filename,'MPEG-4'); 
+    v.FrameRate = 20;     
+    open(v);
+    p = zeros(N, 3);
+    for i = 1: N
+        T = robot.fkine(q(i,:));  
+        p(i,:) = transl(T);     
+        plot3(p(i,1), p(i,2), p(i,3),'*r');
+        hold on;
+        robot.plot(q(i,:), 'view', view);
+        drawnow;                       % ensure the figure updates
+        frame = getframe(gcf);         % capture the figure as a frame
+        writeVideo(v, frame);          % write this frame to the video
+    end
+    pauseFrames = round(v.FrameRate * 0.8);  % 0.8 second worth of frames
+    
+    % Capture the last frame (so it stays on screen for the "pause")
+    lastFrame = getframe(gcf);
+    
+    for j = 1:pauseFrames
+        writeVideo(v, lastFrame);
+    end
+    
+    %Close the video
+    close(v);
+end
 
 
