@@ -1,14 +1,27 @@
 %% MAE263B Homework 3 Code Trevor Oshiro: Force/Torque Propagation function
-function [J_ft] = Jmethod_ft(T_bet, j_type, f_in, t_in)
+function [J_ft, t_bet, f_bet, Rbet, Pbet] = Jmethod_ft(T_bet, j_type, f_in, t_in)
     f_num = size(j_type, 2);
     % Generate symbolic variables for rotational joints
-    T_var = sym("T", [1,f_num]).*j_type;
-    F_var = sym("F", [1,f_num]).*(~j_type);
-    ft_var = T_var + F_var;
+    if ~exist('f_in', 'var') || isempty(f_in)
+        syms fx fy fz real
+        F_var = [fx, fy, fz];
+    else
+        F_var = f_in;
+    end
+    if ~exist('t_in', 'var') || isempty(t_in)
+        syms nx ny nz real
+        T_var = [nx, ny, nz];
+    else
+        T_var = t_in;
+    end    
     fprintf('\n')
-    fprintf('Variables used for Jacobian')
+    fprintf('End Effector force values used for Jacobian')
     fprintf('\n')
-    ft_var
+    F_var
+    fprintf('\n')
+    fprintf('End Effector moment values used for Jacobian')
+    fprintf('\n')
+    T_var
     fprintf('\n')
     % Extract rotational matrices for calculations
     for ii = 1:f_num
@@ -28,11 +41,22 @@ function [J_ft] = Jmethod_ft(T_bet, j_type, f_in, t_in)
         zeros(3,3), R_end];
 
     % Derivation of forces
-    for ss = 1:
+    f_bet.f{f_num} = F_var';
+    for jj = f_num:-1:2
+        f_bet.f{jj-1} = simplify(Rbet.m{jj} * f_bet.f{jj});
+    end
+    % Derivation of moments
+    t_bet.v{f_num} = T_var';
+    eq_FT = [];
+    for nn = f_num:-1:2
+        t_bet.v{nn-1} = simplify((Rbet.m{nn} * t_bet.v{nn}) ...
+            + (cross(Pbet.m{nn}, f_bet.f{nn-1})));
+        eq_FT = [eq_FT, (t_bet.v{nn-1}')*[0;0;1]];
+    end
+    eq_FT = flip(eq_FT);
 
     % Jacobian Creation
-    end_FT = [v_bet.v{f_num+1}; w_bet.w{f_num+1}];
-    J_ft = equationsToMatrix(end_FT, ft_var);
+    J_ft = (equationsToMatrix(eq_FT, [F_var, T_var]))';
     J_ft = simplify(R_jac*J_ft);
 
 end
