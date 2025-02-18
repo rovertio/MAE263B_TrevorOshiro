@@ -57,7 +57,8 @@ fprintf('-----------------------------------------------------------------')
 fprintf('\n')
 fprintf('Explicit method of derivation: Jmethod_exp.m file')
 fprintf('\n')
-J_expm = Jmethod_exp(T_base, l_in)
+J_expm = Jmethod_exp(T_base, l_in);
+J_expm(:,1:(size(l_para, 2) - 1))
 fprintf('\n')
 fprintf('-----------------------------------------------------------------')
 fprintf('\n')
@@ -68,7 +69,7 @@ fprintf('\n')
 fprintf('Velocity Propagation method of derivation: Jmethod_vp.m file')
 fprintf('\n')
 [J_vp, w_bet, v_bet, Rbet, Pbet] = Jmethod_vp(T_bet, l_in, [0;0;0], [0;0;0]);
-J_vp
+J_vp(:,1:(size(l_para, 2) - 1))
 fprintf('\n')
 fprintf('-----------------------------------------------------------------')
 fprintf('\n')
@@ -79,7 +80,56 @@ fprintf('\n')
 fprintf('Force Torque Propagation method of derivation: Jmethod_ft.m file')
 fprintf('\n')
 [J_ft, t_bet, f_bet, Rbet, Pbet] = Jmethod_ft(T_bet, l_in);
-J_ft
+J_ft(:,1:(size(l_para, 2) - 1))
 fprintf('\n')
 fprintf('-----------------------------------------------------------------')
 fprintf('\n')
+
+%% Demonstration of Singularities in jacobian matrix
+% Reduced jacobian matrix for the system
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+fprintf('Reduced jacobian matrix:')
+fprintf('\n')
+Red_Jac = J_expm(:,1:(size(l_para, 2) - 1));
+Red_Jac([4,5],:) = [];
+Red_Jac
+fprintf('\n')
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+
+% Calculation of the determinent of the jacobian
+red_det = det(Red_Jac)
+
+% Examples of singularity orientations:
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+fprintf('Stretched along x axis:')
+fprintf('\n')
+subs(Red_Jac, [a2, a3, th1, th2], [0.325, 0.225, 0, 0])
+fprintf('\n')
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+fprintf('Stretched along y axis:')
+fprintf('\n')
+subs(Red_Jac, [a2, a3, th1, th2], [0.325, 0.225, sym(pi)/2, 0])
+fprintf('\n')
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+fprintf('Stretched when 60 degrees and force along arm axis:')
+fprintf('\n')
+s30 = subs(Red_Jac, [a2, a3, th1, th2], [0.325, 0.225, sym(pi)/3, 0])
+fprintf('\n')
+fprintf('Row reduction of the euqations for force')
+fprintf('\n')
+rref([[(sqrt(3)/2); 0.5], s30(1:2,1:2)])
+fprintf('\n')
+fprintf('-----------------------------------------------------------------')
+fprintf('\n')
+

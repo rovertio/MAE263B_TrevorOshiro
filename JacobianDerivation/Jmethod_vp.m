@@ -25,8 +25,8 @@ function [J_vp, w_bet, v_bet, Rbet, Pbet] = Jmethod_vp(T_bet, j_type, w_in, v_in
     for ff = 2:f_num
         R_end = R_end*(Rbet.m{ff})';
     end
-    R_jac = [R_end, zeros(3,3);
-        zeros(3,3), R_end];
+    R_jac = [simplify(R_end), zeros(3,3);
+        zeros(3,3), simplify(R_end)];
 
     % Derivation of rotational velocities
     % Array of rotational velocities begins with velocity at base

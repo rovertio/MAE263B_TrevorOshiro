@@ -37,8 +37,8 @@ function [J_ft, t_bet, f_bet, Rbet, Pbet] = Jmethod_ft(T_bet, j_type, f_in, t_in
     for ff = 2:f_num
         R_end = R_end*(Rbet.m{ff});
     end
-    R_jac = [R_end, zeros(3,3);
-        zeros(3,3), R_end];
+    R_jac = [simplify(R_end), zeros(3,3);
+        zeros(3,3), simplify(R_end)];
 
     % Derivation of forces
     f_bet.f{f_num} = F_var';
@@ -53,11 +53,11 @@ function [J_ft, t_bet, f_bet, Rbet, Pbet] = Jmethod_ft(T_bet, j_type, f_in, t_in
             + (cross(Pbet.m{nn}, f_bet.f{nn-1})));
         eq_FT = [eq_FT, (t_bet.v{nn-1}')*[0;0;1]];
     end
-    eq_FT = flip(eq_FT)'
+    eq_FT = flip(eq_FT)';
 
     % Jacobian Creation
     J_ft = (equationsToMatrix(eq_FT, [F_var, T_var]))';
-    FT = J_ft'
+    FT = J_ft';
     J_ft = simplify(R_jac*J_ft);
 
 end
