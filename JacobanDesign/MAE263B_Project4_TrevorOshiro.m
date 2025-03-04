@@ -203,7 +203,8 @@ for l1 = 10:10:500
         % The workspace
         [~, err1] = Ikine2RR([200, 50], [l1, l2], -1);
         [~, err2] = Ikine2RR([340, 50], [l1, l2], -1);
-        if (err1 + err2) == 0                    % Fill this out
+        [~, err3] = Ikine2RR([200, 0], [l1, l2], -1);
+        if (err1 + err2 + err3) == 0                    % Fill this out
             % Calculate the goal at this configurtaion using
             % calGoal function. 
             [K,C] = calGoal(J_expm, l1,l2);
@@ -213,15 +214,15 @@ for l1 = 10:10:500
             cm1(row, col, :, :) = K;
             goal(row, col) = C;
             fprintf('\n')
-            fprintf(strcat("include ", "L1: ", string(l1), ...
+            fprintf(strcat("---include ", "L1: ", string(l1), ...
                 "and L2: ", string(l2)));            
         end
         col = col + 1;
         err1 = 0;
         err2 = 0;
-        % fprintf('\n')
-        % fprintf(strcat("discard ", "L1: ", string(l1), ...
-        %     "and L2: ", string(l2)));
+        fprintf('\n')
+        fprintf(strcat("discard ", "L1: ", string(l1), ...
+            "and L2: ", string(l2)));
     end
     row = row + 1;
 end
@@ -229,8 +230,7 @@ end
 %%
 
 [K, C] = calGoal(J_expm, 500, 500);
-Kf = double(K)
-cell(Kf)
+
 
 
 %% Helper Functions
@@ -243,6 +243,9 @@ function [K,C] = calGoal(Jac, l1,l2)
     % Define and initialize parameters
     L3 = l1^3 + l2^3;
     ki_sum = 0;
+    % K = zeros(1,(11*15));
+    % ii = 0;
+    % jj = 1;
     K = [];
     % Initialize kmin to be very large such that we 
     % Can keep updating this values as long as there
@@ -272,9 +275,12 @@ function [K,C] = calGoal(Jac, l1,l2)
             ki_min = min(ki_min, ki);
             % Record the corresponding location of Ki within
             % The workspace
-            K = [K,ki];
-    
+            %K(11*ii + jj) = ki;
+            K = [K, ki];
+            % jj = jj + 1;
         end
+        % ii = ii + 1;
+        % jj = 1;
     end
     % Calculate goal function C
     C = max([l1,l2])*(ki_sum)*(ki_min)/L3;
@@ -321,9 +327,9 @@ end
 
 % Matrix calculations
 % Calculate manipulability matrix
-function manJJ = manJ(Jac, l_con, con, l_para, th)
-    symJac = Jac*Jac';
-    manJ = subs(symJac, [l_para(1:(size(l_para, 2)-1)), l_con], [th, con]);
+function manJJ = manJ(Jac, l_con, con, l_para, th)   
+    submanJ = subs(Jac, [l_para(1:(size(l_para, 2)-1)), l_con], [th, con]);
+    manJ = submanJ*submanJ';
     [Bvec,Bval] = eig(manJ);
     manJJ.m = manJ;
     manJJ.vec = Bvec;
