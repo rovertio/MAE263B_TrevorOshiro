@@ -12,11 +12,9 @@ function [th, err] = Ikine2RR(coor, con, elbow)
 
     % Calculation of theta2
     c2 = ((x^2 + y^2) - (L1^2 + L2^2))/(2*L1*L2);
-    if abs(c2) > 1          % Error handling
+    if c2 >= 1          % Error handling
         err = 1;
-        t2 = 100;
-        c2 = 0;
-        s2 = 0;
+        t2 = 0;
     else
         if elbow == 1
             s2 = sqrt(1 - c2^2);
@@ -35,9 +33,7 @@ function [th, err] = Ikine2RR(coor, con, elbow)
     g = y;
 
     if (a*f - c*e) == 0
-        t1 = 100;
-        err = 1;
-        % fprintf('No solution')      
+        fprintf('No solution')
     elseif (a*f - c*e) > 0
         t1 = atan2((a*g - d*e), (d*f - c*g));
     elseif (a*f - c*e) < 0
