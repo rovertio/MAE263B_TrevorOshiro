@@ -203,32 +203,101 @@ for l1 = 10:10:500
         % The workspace
         [~, err1] = Ikine2RR([200, 50], [l1, l2], -1);
         [~, err2] = Ikine2RR([340, 50], [l1, l2], -1);
-        if (err1 + err2) == 0                    % Fill this out
+        [~, err3] = Ikine2RR([200, 0], [l1, l2], -1);
+         
+        if (err1 + err2 + err3) == 0                  % Fill this out
             % Calculate the goal at this configurtaion using
             % calGoal function. 
             [K,C] = calGoal(J_expm, l1,l2);
             
             % Store that into a matrix
             % Also store the K 
-            %cm1(row, col, :, :) = K;
+            cm1(row, col, :, :) = K;
+            row
+            col
             goal(row, col) = C;
             fprintf('\n')
-            fprintf(strcat("include ", "L1: ", string(l1), ...
+            fprintf(strcat("---include ", "L1: ", string(l1), ...
                 "and L2: ", string(l2)));            
         end
         col = col + 1;
         err1 = 0;
         err2 = 0;
+        err3 = 0;
         fprintf('\n')
         fprintf(strcat("discard ", "L1: ", string(l1), ...
             "and L2: ", string(l2)));
     end
+    col = 1;
     row = row + 1;
 end
 
 %%
+% Load and obtain past data from optimization
+%save("goal_function.mat", "goal", "cm1")
+load("goal_function.mat");
+% Added cleaning of data from error in code previosuly
+goal_vec = [max(goal), zeros(1,2500-1374)];
+goal_re = reshape(goal_vec, 50, 50);
+goal_max = max((goal_re(goal_re ~= 0)));
+% Getting maximum goal function configuration
+[max_goal, max_col] = max(max(goal_re));
+[~, k1] = max(goal_re);
+max_row = k1(max_col);
+Len1_max = 10*max_row;
+Len2_max = 10*max_col;
 
-[K, C] = calGoal(J_expm, 500, 500);
+goal_min = min((goal_re(goal_re ~= 0)));
+
+
+[Kmax, Cmax] = calGoal(J_expm, Len1_max, Len2_max);
+[Kmin, Cmin] = calGoal(J_expm, 500,310);
+
+%%
+
+figure(2)
+clf;
+hold on 
+S1 = surf(linspace(10, 500, 50), linspace(10, 500, 50), goal_reshape, 'FaceAlpha', 0.5)
+S1.EdgeColor = 'none';
+colorbar
+xlabel('L1 lengths (mm)')
+ylabel('L2 lengths (mm)')
+zlabel('Goal function values')
+title('Goal function plot for different configurations')
+saveas(figure(2), strcat(pwd, '/GoalFunction/GoalFunctionPlot.png'))
+hold off
+
+
+
+
+%%
+figure(3)
+clf;
+hold on 
+S2 = surf(Kmax, 'FaceAlpha', 0.5);
+S2.EdgeColor = 'none';
+colorbar
+xlabel('Workspace x (mm)')
+ylabel('Workspace y (mm)')
+zlabel('Ki values')
+title('Ki values for best configuration')
+saveas(figure(3), strcat(pwd, '/GoalFunction/BestConfigPlot.png'))
+hold off
+
+figure(4)
+clf;
+hold on 
+S3 = surf(Kmin, 'FaceAlpha', 0.5);
+S3.EdgeColor = 'none';
+colorbar
+xlabel('Workspace x (mm)')
+ylabel('Workspace y (mm)')
+zlabel('Ki values')
+title('Ki values for worst configuration')
+saveas(figure(4), strcat(pwd, '/GoalFunction/WorstConfigPlot.png'))
+hold off
+
 
 
 
@@ -242,9 +311,10 @@ function [K,C] = calGoal(Jac, l1,l2)
     % Define and initialize parameters
     L3 = l1^3 + l2^3;
     ki_sum = 0;
-    K = zeros(1,(11*15));
-    ii = 0;
-    jj = 1;
+    % K = zeros(1,(11*15));
+    % ii = 0;
+    % jj = 1;
+    K = [];
     % Initialize kmin to be very large such that we 
     % Can keep updating this values as long as there
     % Is a smaller value pops out
@@ -257,7 +327,8 @@ function [K,C] = calGoal(Jac, l1,l2)
             % Calculate Jacobian with our IK solution angles
             manJJ = manJ(Jac, l_con, [l1, l2], l_para, th);
             % Extract all eigen valeus from the matrix
-            eigvals = diag(manJJ.val);
+            %eigvals = diag(manJJ.val);
+            eigvals = [double(manJJ.val(1,1)), double(manJJ.val(2,2))];
             % Get max and min value
             lambda_min = [double(min(eigvals))];
             lambda_max = [double(max(eigvals))];
@@ -273,12 +344,12 @@ function [K,C] = calGoal(Jac, l1,l2)
             ki_min = min(ki_min, ki);
             % Record the corresponding location of Ki within
             % The workspace
-            K(11*ii + jj) = ki;
-            
-            jj = jj + 1;
+            %K(11*ii + jj) = ki;
+            K = [K, ki];
+            % jj = jj + 1;
         end
-        ii = ii + 1;
-        jj = 1;
+        % ii = ii + 1;
+        % jj = 1;
     end
     % Calculate goal function C
     C = max([l1,l2])*(ki_sum)*(ki_min)/L3;

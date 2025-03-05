@@ -204,7 +204,8 @@ for l1 = 10:10:500
         [~, err1] = Ikine2RR([200, 50], [l1, l2], -1);
         [~, err2] = Ikine2RR([340, 50], [l1, l2], -1);
         [~, err3] = Ikine2RR([200, 0], [l1, l2], -1);
-        if (err1 + err2 + err3) == 0                    % Fill this out
+         
+        if (err1 + err2 + err3) == 0                  % Fill this out
             % Calculate the goal at this configurtaion using
             % calGoal function. 
             [K,C] = calGoal(J_expm, l1,l2);
@@ -212,6 +213,8 @@ for l1 = 10:10:500
             % Store that into a matrix
             % Also store the K 
             cm1(row, col, :, :) = K;
+            row
+            col
             goal(row, col) = C;
             fprintf('\n')
             fprintf(strcat("---include ", "L1: ", string(l1), ...
@@ -220,16 +223,83 @@ for l1 = 10:10:500
         col = col + 1;
         err1 = 0;
         err2 = 0;
+        err3 = 0;
         fprintf('\n')
         fprintf(strcat("discard ", "L1: ", string(l1), ...
             "and L2: ", string(l2)));
     end
+    col = 1;
     row = row + 1;
 end
 
 %%
+% Load and obtain past data from optimization
+%save("goal_function.mat", "goal", "cm1")
+load("goal_function.mat");
+% Added cleaning of data from error in code previosuly
+goal_vec = [max(goal), zeros(1,2500-1374)];
+goal_re = reshape(goal_vec, 50, 50);
+goal_max = max((goal_re(goal_re ~= 0)));
+% Getting maximum goal function configuration
+[max_goal, max_col] = max(max(goal_re));
+[~, k1] = max(goal_re);
+max_row = k1(max_col);
+Len2_max = 10*max_row;
+Len1_max = 10*max_col;
 
-[K, C] = calGoal(J_expm, 500, 500);
+goal_min = min((goal_re(goal_re ~= 0)));
+%%
+[Kmax, Cmax] = calGoal(J_expm, Len1_max, Len2_max);
+[Kmin, Cmin] = calGoal(J_expm, 310,500);
+
+%%
+
+figure(2)
+clf;
+hold on 
+S1 = surf(linspace(10, 500, 50), linspace(10, 500, 50), goal_re', 'FaceAlpha', 0.5)
+grid on
+S1.EdgeColor = 'none';
+colorbar
+xlabel('L1 lengths (mm)')
+ylabel('L2 lengths (mm)')
+zlabel('Goal function values')
+title('Goal function plot for different configurations')
+saveas(figure(2), strcat(pwd, '/GoalFunction/GoalFunctionPlot.png'))
+hold off
+
+
+
+
+%%
+figure(3)
+clf;
+hold on 
+S2 = surf(Kmax', 'FaceAlpha', 0.5);
+grid on
+S2.EdgeColor = 'none';
+colorbar
+xlabel('Workspace x (point index)')
+ylabel('Workspace y (point index)')
+zlabel('Ki values')
+title('Ki values for best configuration')
+saveas(figure(3), strcat(pwd, '/GoalFunction/BestConfigPlot.png'))
+hold off
+
+figure(4)
+clf;
+hold on 
+S3 = surf(Kmin', 'FaceAlpha', 0.5);
+grid on
+S3.EdgeColor = 'none';
+colorbar
+xlabel('Workspace x (point index)')
+ylabel('Workspace y (point index)')
+zlabel('Ki values')
+title('Ki values for worst configuration')
+saveas(figure(4), strcat(pwd, '/GoalFunction/WorstConfigPlot.png'))
+hold off
+
 
 
 
@@ -259,7 +329,8 @@ function [K,C] = calGoal(Jac, l1,l2)
             % Calculate Jacobian with our IK solution angles
             manJJ = manJ(Jac, l_con, [l1, l2], l_para, th);
             % Extract all eigen valeus from the matrix
-            eigvals = diag(manJJ.val);
+            %eigvals = diag(manJJ.val);
+            eigvals = [double(manJJ.val(1,1)), double(manJJ.val(2,2))];
             % Get max and min value
             lambda_min = [double(min(eigvals))];
             lambda_max = [double(max(eigvals))];
