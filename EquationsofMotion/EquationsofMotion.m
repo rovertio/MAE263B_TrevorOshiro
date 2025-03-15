@@ -112,6 +112,13 @@ for qq = n:-1:1
     tor_in.v{qq} = simplify((n_in.v{qq}')*[0;0;1]);
 end
 
+%% Obtaining coefficients of equation
+% Equation for Tau 2
+t2_d2t1 = coeffs(n_in.v{2}(3,1), d2t1);
+t2_d2t2 = coeffs(n_in.v{2}(3,1), d2t2);
+t2_dt1s = coeffs(n_in.v{2}(3,1), dt1^2);
+t2_dt2s = coeffs(n_in.v{2}(3,1), dt2^2);
+
 
 
 %% Lagrange method for equations

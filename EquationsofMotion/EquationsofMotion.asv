@@ -8,8 +8,8 @@ clf;
 
 syms L1 L2 m1 m2 real
 syms t1 t2 real
-syms dt1 dt2
-syms d2t1 d2t2
+syms dt1 dt2 real
+syms d2t1 d2t2 real
 
 mvec = [m1, m2];
 thvec = [t1, t2];
@@ -77,20 +77,20 @@ CImat.i{2} = zeros(3,3);
 
 % Outward Iteration
 for ll = 1:n
-    wvec.v{ll+1} = (Rotvec.i{ll})'*wvec.v{ll} + dthvec(ll)*[0;0;1];
-    dwvec.v{ll+1} = (Rotvec.i{ll})'*dwvec.v{ll} + ...
+    wvec.v{ll+1} = simplify((Rotvec.i{ll})'*wvec.v{ll} + dthvec(ll)*[0;0;1]);
+    dwvec.v{ll+1} = simplify((Rotvec.i{ll})'*dwvec.v{ll} + ...
         cross((Rotvec.i{ll})'*wvec.v{ll}, dthvec(ll)*[0;0;1]) + ...
-        d2thvec(ll)*[0;0;1];
-    dvvec.v{ll+1} = (Rotvec.i{ll})'*...
+        d2thvec(ll)*[0;0;1]);
+    dvvec.v{ll+1} = simplify((Rotvec.i{ll})'*...
         (cross(dwvec.v{ll}, Posvec.i{ll}) + ...
-        cross(wvec.v{ll}, cross(wvec.v{ll}, Posvec.i{ll})) + dvvec.v{ll});
-    dvcvec.v{ll+1} = cross(dwvec.v{ll+1}, PosCvec.i{ll}) + ...
+        cross(wvec.v{ll}, cross(wvec.v{ll}, Posvec.i{ll})) + dvvec.v{ll}));
+    dvcvec.v{ll+1} = simplify(cross(dwvec.v{ll+1}, PosCvec.i{ll}) + ...
         cross(wvec.v{ll+1}, cross(wvec.v{ll+1},PosCvec.i{ll})) + ...
-        dvvec.v{ll+1};
+        dvvec.v{ll+1});
 
-    Fvec.v{ll} = mvec(ll)*dvcvec.v{ll+1};
-    Nvec.v{ll} = (CImat.i{ll}*dwvec.v{ll+1}) + ...
-        cross(wvec.v{ll+1}, (CImat.i{ll}*wvec.v{ll+1}));
+    Fvec.v{ll} = simplify(mvec(ll)*dvcvec.v{ll+1});
+    Nvec.v{ll} = simplify((CImat.i{ll}*dwvec.v{ll+1}) + ...
+        cross(wvec.v{ll+1}, (CImat.i{ll}*wvec.v{ll+1})));
 end
 
 
@@ -109,8 +109,14 @@ for qq = n:-1:1
     n_in.v{qq} = Nvec.v{qq} + (Rotvec.i{qq+1}*n_in.v{qq+1}) + ...
         cross(PosCvec.i{qq}, Fvec.v{qq}) + ...
         cross(Posvec.i{qq+1}, (Rotvec.i{qq+1}*f_in.v{qq+1}));
-    tor_in.v{qq} = (n_in.v{qq}')*[0;0;1];
+    tor_in.v{qq} = simplify((n_in.v{qq}')*[0;0;1]);
 end
+
+%% Obtaining coefficients of equation
+% Equation for Tau 2
+t1_d2t1 = coeffs(n_in.v{2}(3,1), d2t1);
+t1_d2t2 = coeffs(n_in.v{2}(3,1), d2t2);
+t1_dt1s = coeffs(n_in.v{2}(3,1), dt1^2);
 
 
 
